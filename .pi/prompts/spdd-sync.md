@@ -1,5 +1,5 @@
 ---
-description: Sync implementation changes back into a saved SPDD REASONS Canvas prompt so prompt and code remain aligned
+description: Sync accepted code changes back into an SPDD Canvas prompt
 argument-hint: "<@spdd/prompt/file.md or path> [changed files, git diff context, or description]"
 ---
 
@@ -50,7 +50,7 @@ Examples:
 @spdd/prompt/SPDD-XXX-202603131530-[Feat]-api-user-registration.md sync the renamed validator and service extraction from the latest git diff
 ```
 
-Note on pi references: in pi, `@file` is usually a UI-level file attachment. If file content is already attached or inlined in the conversation, treat it as already read; do not re-fetch it unless necessary to resolve ambiguity.
+Note on Pi references: in Pi, `@file` is usually a UI-level file attachment. If file content is already attached or inlined in the conversation, treat it as already read; do not re-fetch it unless necessary to resolve ambiguity.
 
 ## Phase Goal
 
@@ -79,7 +79,7 @@ It must not:
 - inline `/spdd-generate` or `/spdd-prompt-update` behavior
 - create commits unless the user explicitly asks
 
-If the code change represents a new business requirement or a desired behavior/design change not already accepted in code, stop and hand off to `/spdd-prompt-update` once available, or ask the user to explicitly approve the Canvas change. If the prompt is updated and code needs regeneration afterward, hand off to `/spdd-generate`. Pi does not auto-chain prompt templates.
+If the code change represents a new business requirement or a desired behavior/design change not already accepted in code, stop and instruct the user to run `/spdd-prompt-update <prompt-file> <change>` or ask the user to explicitly approve the Canvas change. If the prompt is updated and code needs regeneration afterward, instruct the user to run `/spdd-generate <prompt-file>`. Pi does not auto-chain prompt templates.
 
 ## Steps
 
@@ -118,7 +118,7 @@ Identify the existing prompt sections and their sync priority:
 
 | Section | Purpose | Sync priority |
 |---------|---------|---------------|
-| **Requirements** | Overall goal, scope, DoD, AC/DE IDs | Out of scope by default — change only with explicit approval; route requirement/design changes through `/spdd-prompt-update` once available |
+| **Requirements** | Overall goal, scope, DoD, AC/DE IDs | Out of scope by default — change only with explicit approval; route requirement/design changes through `/spdd-prompt-update <prompt-file> <change>` |
 | **Entities** | Domain model, data shapes, relationships | High — class/type/data relationships may change |
 | **Approach** | Implementation strategy and trade-offs | Medium — architectural decisions or patterns may evolve |
 | **Structure** | Components, files, dependencies, data flow | High — files, dependencies, layers, and relationships may change |
@@ -166,7 +166,7 @@ For each affected component, perform targeted codebase exploration. Do **not** r
 
 #### 4a. Lightweight project fingerprint (only if not implied by the Canvas)
 
-If the Canvas's Structure section already states concrete file paths and the project's stack is unambiguous from those paths, keep this step brief. Otherwise, identify the stack and tooling by reading the primary project files when present, such as `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle`, `mix.exs`, or `deno.json`. List top-level directories and read one obvious relevant config file when useful.
+If the Canvas's Structure section already states concrete file paths and the project's stack is unambiguous from those paths, keep this step brief. Otherwise, detect the stack and tooling from primary dependency/build files, lock files, and obvious tool manifests. List top-level directories and read one obvious relevant configuration file only when useful.
 
 Keep this step fast. Touch only a small number of files. Skip entirely when the Canvas plus the changed files give enough context.
 
@@ -245,7 +245,7 @@ When stopping for a requirement/design change, report it in this form:
 ⚠️ Sync blocked — requirement/design change beyond current Canvas.
 
 - Change observed: [summary]
-- To resume: update the Canvas via `/spdd-prompt-update` once available, or an explicit user-approved edit to the Canvas file, then re-run `/spdd-sync` for any remaining code-side details. Pi does not auto-chain prompt templates.
+- To resume: update the Canvas via `/spdd-prompt-update <prompt-file> <change>` or an explicit user-approved edit to the Canvas file, then re-run `/spdd-sync` for any remaining code-side details. Pi does not auto-chain prompt templates.
 ```
 
 ### 6. Create a prompt sync plan and ask for approval
@@ -299,7 +299,7 @@ Use this format:
 Please confirm whether to apply this prompt sync plan. Destructive removals, Requirements changes, and Safeguard relaxations require explicit approval.
 ```
 
-Stop after presenting the plan unless the user's original instruction explicitly authorized applying the plan without another confirmation. When in doubt, ask.
+Stop after presenting the plan unless the user's original instruction explicitly authorized applying the plan without another confirmation, using wording such as "sync and apply", "apply the sync plan", or "update the prompt directly". When in doubt, ask.
 
 If the discrepancy set is too large to review in one plan (heuristic: more than ~15–20 items, or spanning unrelated subsystems), propose splitting the sync into multiple smaller approval rounds, such as per subsystem or per REASONS section, and ask the user which slice to apply first.
 
@@ -313,7 +313,7 @@ Apply updates by section:
 
 #### 7a. Requirements
 
-- Requirements are out of scope by default; do not change them unless explicitly approved by the user. Route requirement/design changes through `/spdd-prompt-update` once available.
+- Requirements are out of scope by default; do not change them unless explicitly approved by the user. Route requirement/design changes through `/spdd-prompt-update <prompt-file> <change>`.
 - If Requirements change, preserve AC/DE IDs where possible.
 - Do not convert code behavior into a business requirement without explicit approval.
 
@@ -365,6 +365,11 @@ Add Operations for newly accepted components. Remove obsolete Operations only wi
 
 General editing rules:
 
+- The SPDD prompt file is a specification document, not source code.
+- Do **not** include language-specific fenced code blocks such as `java`, `python`, `typescript`, `tsx`, `sql`, `go`, or `rust`.
+- Do **not** sync implementation snippets into the Canvas: no class bodies, method bodies, SQL query bodies, decorators/annotations in code form, or full source snippets.
+- Allowed fenced code blocks: Mermaid diagrams only, using `mermaid`.
+- Keep contracts, signatures, routes, field names, and query descriptions as inline code spans or natural language.
 - Preserve the prompt's existing section structure and formatting style.
 - Maintain the same level of detail as nearby content.
 - Prefer targeted edits over whole-file rewrites.
@@ -394,7 +399,9 @@ After updating the prompt, re-read the changed portions or the full file if need
    - Each affected Operation maps to a component in Structure.
    - If an `AC-n` / `DE-n` no longer maps to anything after sync, classify it as a potential code defect or a requirement/design change instead of silently dropping it.
 
-4. **Scope control**
+4. **Specification format and scope control**
+   - No language-specific fenced code blocks were introduced, except Mermaid diagrams.
+   - Source snippets were not copied into the Canvas.
    - Only approved prompt updates were made.
    - Requirements, destructive removals, and Safeguard relaxations were not changed without explicit approval.
    - The prompt's unique identifier, title, and `_Source analysis: …_` provenance line are unchanged.
@@ -500,13 +507,14 @@ Use these patterns when building the sync plan and applying approved edits.
 
 - Do not proceed without reading the entire structured prompt file.
 - Do not modify source code.
-- Do not update the prompt before presenting a sync plan and receiving approval, unless the user explicitly authorized direct application.
+- Do not update the prompt before presenting a sync plan and receiving approval, unless the user explicitly authorized direct application with wording such as "sync and apply".
 - Do not remove prompt content without explicit user approval.
 - Do not change Requirements unless explicitly approved.
 - Do not relax Safeguards unless explicitly approved and supported by accepted implementation.
 - Do not normalize a code defect by changing the prompt to match broken code.
 - Do not invent business intent from code alone.
 - Do not simplify, abbreviate, or delete detailed specifications while syncing.
+- Do not introduce language-specific fenced code blocks except Mermaid diagrams.
 - Do not change exact error messages, status codes, validation rules, or public contracts unless they actually changed in accepted code and are approved for sync.
 - Do not change the prompt's unique identifier, title, source analysis line, or metadata unless explicitly requested.
 - Always preserve the existing formatting style and section structure.
@@ -538,4 +546,4 @@ Use `/spdd-sync` when:
 
 Do not use `/spdd-sync` as a substitute for business requirement refinement. If the desired behavior or design should change before code is accepted, update the Canvas through `/spdd-prompt-update` first, then use `/spdd-generate` for implementation.
 
-Note: `/spdd-sync` is sync-only. If the change is a new business requirement or design change, hand off to `/spdd-prompt-update` once available before continuing. If the Canvas update implies code changes, hand off to `/spdd-generate`. Do not inline those workflows inside `/spdd-sync`. Pi does not auto-chain prompt templates.
+Note: `/spdd-sync` is sync-only. If the change is a new business requirement or design change, hand off to `/spdd-prompt-update <prompt-file> <change>` before continuing. If the Canvas update implies code changes, hand off to `/spdd-generate <prompt-file>`. Do not inline those workflows inside `/spdd-sync`. Pi does not auto-chain prompt templates.

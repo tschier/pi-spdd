@@ -1,5 +1,5 @@
 ---
-description: Generate or update implementation code from a saved SPDD REASONS Canvas prompt, strictly following Operations, Norms, and Safeguards
+description: Implement code from a saved SPDD REASONS Canvas prompt
 argument-hint: "<@spdd/prompt/file.md or path to REASONS Canvas prompt>"
 ---
 
@@ -46,7 +46,7 @@ Input may contain:
 2. A plain file path
 3. A glob that resolves to exactly one prompt file
 
-Note on pi references: in pi, `@file` is usually a UI-level file attachment. If file content is already attached or inlined in the conversation, treat it as already read; do not re-fetch it unless necessary to resolve ambiguity.
+Note on Pi references: in Pi, `@file` is usually a UI-level file attachment. If file content is already attached or inlined in the conversation, treat it as already read; do not re-fetch it unless necessary to resolve ambiguity.
 
 ## Phase Goal
 
@@ -71,7 +71,7 @@ It must not:
 - sync code-side refactors back into the Canvas
 - invent or inline `/spdd-prompt-update` or `/spdd-sync` behavior
 
-If the Canvas needs to change, stop and hand off to `/spdd-prompt-update` once available, or ask the user to update the Canvas explicitly. If code has changed independently and the Canvas needs to be synchronized, stop and hand off to `/spdd-sync` once available. Pi does not auto-chain prompt templates.
+If the Canvas needs to change, stop and instruct the user to run `/spdd-prompt-update <prompt-file> <change>` or to request an explicit Canvas edit. If code has changed independently and the Canvas needs to be synchronized, stop and instruct the user to run `/spdd-sync <prompt-file> <changed files or description>`. Pi does not auto-chain prompt templates.
 
 ## Steps
 
@@ -115,20 +115,7 @@ Before changing code, perform targeted codebase exploration. Do **not** read the
 
 #### 3a. Lightweight project fingerprint (only if not implied by the Canvas)
 
-If the Canvas's Structure section already states concrete file paths and the project's stack is unambiguous from those paths, keep this step brief. Otherwise, identify the stack and tooling by reading the primary project files when present:
-
-- JS/TS: `package.json`; note lock files such as `pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`, or `bun.lockb`
-- Python: `pyproject.toml`, `requirements.txt`, `Pipfile`
-- Go: `go.mod`
-- Rust: `Cargo.toml`
-- Ruby: `Gemfile`
-- PHP: `composer.json`
-- Java/Kotlin: `pom.xml`, `build.gradle`, `build.gradle.kts`
-- Elixir: `mix.exs`
-- Deno: `deno.json`, `deno.jsonc`
-- Nix: `flake.nix`
-
-Also list top-level directories and read one obvious relevant config file when useful.
+If the Canvas's Structure section already states concrete file paths and the project's stack is unambiguous from those paths, keep this step brief. Otherwise, detect the stack and tooling from primary dependency/build files, lock files, and obvious tool manifests. Also list top-level directories and read obvious relevant configuration files when useful.
 
 #### 3b. Locate existing patterns
 
@@ -172,7 +159,7 @@ If blocking issues are found, stop and report:
 - Canvas section(s): [Requirements/Entities/Approach/Structure/Operations/Norms/Safeguards]
 - Why this blocks generation: [reason]
 - Suggested prompt update: [specific minimal change]
-- To resume: update the saved Canvas first, using `/spdd-prompt-update` once available or an explicit user-approved edit to the Canvas file, then re-run `/spdd-generate <same-prompt-file>`. Pi does not auto-chain prompt templates.
+- To resume: update the saved Canvas first by running `/spdd-prompt-update <same-prompt-file> <change>` or by making an explicit user-approved edit to the Canvas file, then re-run `/spdd-generate <same-prompt-file>`. Pi does not auto-chain prompt templates.
 ```
 
 Do **not** silently re-plan the sequence. The Operations order is the designed execution order from the Abstraction phase.
@@ -291,7 +278,7 @@ Action: stop and ask to update the structured prompt first. Trace the issue to t
 - Missing engineering standard → update **Norms**
 - Missing non-negotiable constraint → update **Safeguards**
 
-To resume, update the saved Canvas first, using `/spdd-prompt-update` once available or an explicit user-approved edit to the Canvas file, then re-run `/spdd-generate <same-prompt-file>`. Pi does not auto-chain prompt templates.
+To resume, update the saved Canvas first by running `/spdd-prompt-update <same-prompt-file> <change>` or by making an explicit user-approved edit to the Canvas file, then re-run `/spdd-generate <same-prompt-file>`. Pi does not auto-chain prompt templates.
 
 After the prompt is updated, regenerate only the affected code.
 
@@ -359,4 +346,4 @@ Requirement → /spdd-analysis → /spdd-reasons-canvas → /spdd-generate → R
 
 The prompt and code must evolve together. If behavior changes after generation, update or sync the structured prompt so it remains the version-controlled source of implementation intent.
 
-Note: `/spdd-generate` is generate-only. If a behavior/design change is needed, hand off to `/spdd-prompt-update` before re-running generation. If code-side refactoring needs to be reflected back into the Canvas, hand off to `/spdd-sync`. Do not inline those workflows inside `/spdd-generate`.
+Note: `/spdd-generate` is generate-only. If a behavior/design change is needed, hand off to `/spdd-prompt-update <prompt-file> <change>` before re-running generation. If code-side refactoring needs to be reflected back into the Canvas, hand off to `/spdd-sync <prompt-file> <changed files or description>`. Do not inline those workflows inside `/spdd-generate`.

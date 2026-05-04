@@ -1,5 +1,5 @@
 ---
-description: SPDD analysis of business requirements against the current codebase, producing strategic enriched context for REASONS Canvas generation
+description: Analyze requirements into SPDD strategic context
 argument-hint: "<requirement text, @file, path, glob, or folder>"
 ---
 
@@ -29,7 +29,7 @@ Input may contain:
 3. Plain file paths, folder paths, or glob patterns
 4. A combination of text and references
 
-Note on pi references: in pi, `@file` is usually a UI-level file attachment. If file content is already attached or inlined in the conversation, treat it as already read; do not re-fetch it unless necessary to resolve ambiguity.
+Note on Pi references: in Pi, `@file` is usually a UI-level file attachment. If file content is already attached or inlined in the conversation, treat it as already read; do not re-fetch it unless necessary to resolve ambiguity.
 
 ## Phase Goal
 
@@ -60,7 +60,8 @@ Do **not** proceed without business input.
 
 If the consolidated input includes file paths, folder paths, globs, or `@`-style references:
 
-- Treat any pi-attached or already-inlined file content as already read; do not re-fetch it unnecessarily.
+- Treat any Pi-attached or already-inlined file content as already read; do not re-fetch it unnecessarily.
+- If an `@file` reference is not attached or inlined, strip the leading `@` and treat the remainder as a plain path.
 - For any path or glob that is not already attached or inlined, enumerate with `bash`/`find`/`rg --files` and read the relevant files.
 - For folder inputs, list the folder and read all relevant requirement files inside.
 - If a reference cannot be resolved or read, report the problem and ask the user for an alternative.
@@ -68,39 +69,23 @@ If the consolidated input includes file paths, folder paths, globs, or `@`-style
 - Preserve the full original meaning and information.
 - Do not summarize or truncate the requirement input.
 
-Before continuing, verify that every referenced source ended up in the consolidated business context, either via pi attachment/inlining or explicit reading. Never proceed with partial referenced content.
+Before continuing, verify that every referenced source ended up in the consolidated business context, either via Pi attachment/inlining or explicit reading. Never proceed with partial referenced content.
 
 ### 2. Perform concept-driven codebase exploration
 
 Do **not** read the entire codebase exhaustively. Use targeted exploration.
 
-For repository-local searches, use `bash` with tools such as `rg`, `find`, and `ls` (or pi's built-in `grep`/`find`/`ls` tools if available). Use external library/API search tools only for questions about third-party APIs, not for code in this repository.
+For repository-local searches, use `bash` with tools such as `rg`, `find`, and `ls` (or Pi's built-in `grep`/`find`/`ls` tools if available). Use external library/API search tools only for questions about third-party APIs, not for code in this repository.
 
 #### 2a. Lightweight project fingerprint
 
 Always begin with a lightweight project fingerprint:
 
-- Identify and read the primary build/dependency file if present:
-  - JS/TS: `package.json`; note lock files such as `pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`, or `bun.lockb` to identify the package manager
-  - Python: `pyproject.toml`, `requirements.txt`, `Pipfile`
-  - Go: `go.mod`
-  - Rust: `Cargo.toml`
-  - Ruby: `Gemfile`
-  - PHP: `composer.json`
-  - Java/Kotlin: `pom.xml`, `build.gradle`, `build.gradle.kts`
-  - Elixir: `mix.exs`
-  - Deno: `deno.json`, `deno.jsonc`
-  - Nix: `flake.nix`
+- Detect the stack from primary dependency/build files, lock files, and obvious tool manifests.
 - List top-level directories to understand project layout.
-- Read one main configuration file if obvious and relevant, such as:
-  - `application.yml`
-  - `application.properties`
-  - `.env.example`
-  - `next.config.js`
-  - `vite.config.*`
-  - framework-specific config files
+- Read obvious relevant configuration files only when it materially helps identify framework conventions, runtime settings, or validation commands.
 
-Keep this step fast. Touch only a small number of files.
+Keep this step fast. Touch only a small number of files; do not enumerate every possible ecosystem manifest unless needed to disambiguate the project.
 
 #### 2b. Extract search concepts from business input
 
@@ -289,7 +274,7 @@ Derive a filename using:
 Rules:
 
 - **TICKET**: Extract a ticket/Jira-like identifier from the business context if present. Otherwise use `SPDD-XXX`.
-- **TIMESTAMP**: Use current UTC time as `YYYYMMDDHHmm`.
+- **TIMESTAMP**: Use current UTC time as `YYYYMMDDHHmm`. Use `bash` to obtain it, for example: `date -u +%Y%m%d%H%M`.
 - **description**: Derive from the business context, kebab-case, fewer than 10 words.
 - **collision handling**: If the target file already exists, append `-v2`, `-v3`, and so on rather than overwriting.
 
@@ -327,11 +312,11 @@ After saving, reply with:
    /spdd-reasons-canvas @spdd/analysis/<filename>.md
 ```
 
-Then ask as a plain follow-up line:
+Do not continue automatically. Pi does not auto-chain prompt templates; the user must explicitly invoke the next workflow, for example:
 
-The enriched context is ready. Would you like to proceed with REASONS Canvas generation?
-
-If the user confirms and a `/spdd-reasons-canvas` prompt template exists, continue that workflow in the conversation using the saved analysis file as input. If it does not exist yet, explain that the next prompt template needs to be created first.
+```text
+/spdd-reasons-canvas @spdd/analysis/<filename>.md
+```
 
 ## Guardrails
 
@@ -346,7 +331,7 @@ If the user confirms and a `/spdd-reasons-canvas` prompt template exists, contin
 - Do not include implementation-level details. Those belong in the REASONS Canvas phase.
 - Do not leave placeholders or TODOs in the saved analysis.
 - Preserve original requirements verbatim.
-- Ensure every referenced source ends up in the consolidated context, either via pi attachment/inlining or explicit reading.
+- Ensure every referenced source ends up in the consolidated context, either via Pi attachment/inlining or explicit reading.
 - Never proceed with partial referenced content.
 - Assess every explicit acceptance criterion found in the requirement.
 - If no explicit acceptance criteria exist, say so and assess coverage against requirement statements in prose.

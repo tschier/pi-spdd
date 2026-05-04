@@ -1,5 +1,5 @@
 ---
-description: Update an existing SPDD REASONS Canvas prompt with new requirements, architectural changes, constraints, or specification refinements
+description: Update an existing SPDD REASONS Canvas prompt
 argument-hint: "<@spdd/prompt/file.md or path> <update instructions>"
 ---
 
@@ -48,7 +48,7 @@ Examples:
 @spdd/prompt/SPDD-XXX-202603131530-[Feat]-api-user-registration.md Refine AC-2 so inactive users cannot authenticate
 ```
 
-Note on pi references: in pi, `@file` is usually a UI-level file attachment. If file content is already attached or inlined in the conversation, treat it as already read; do not re-fetch it unless necessary to resolve ambiguity.
+Note on Pi references: in Pi, `@file` is usually a UI-level file attachment. If file content is already attached or inlined in the conversation, treat it as already read; do not re-fetch it unless necessary to resolve ambiguity.
 
 ## Phase Goal
 
@@ -77,7 +77,7 @@ It must not:
 - rename the prompt file or change unrelated prompt sections
 - create commits unless the user explicitly asks
 
-If the user's request is really about accepted code that already changed, stop and hand off to `/spdd-sync`. If the updated Canvas requires code changes afterward, hand off to `/spdd-generate`. Pi does not auto-chain prompt templates.
+If the user's request is really about accepted code that already changed, stop and instruct the user to run `/spdd-sync <prompt-file> <changed files or description>`. If the updated Canvas requires code changes afterward, instruct the user to run `/spdd-generate <prompt-file>`. Pi does not auto-chain prompt templates.
 
 ## Steps
 
@@ -157,8 +157,8 @@ Determine the update type and affected sections.
 Classify the requested update as one of:
 
 - **Prompt update**: explicit requirement/design/specification change that should be applied to the Canvas
-- **Potential code sync**: accepted implementation already changed and the prompt should reflect code; hand off to `/spdd-sync`
-- **Potential code generation**: prompt is already correct and code should change; hand off to `/spdd-generate`
+- **Potential code sync**: accepted implementation already changed and the prompt should reflect code; hand off with `/spdd-sync <prompt-file> <changed files or description>`
+- **Potential code generation**: prompt is already correct and code should change; hand off with `/spdd-generate <prompt-file>`
 - **Ambiguous**: update instructions are not specific enough; ask for clarification
 
 If ambiguous, stop and ask for clarification using this format:
@@ -190,7 +190,7 @@ Do **not** read the whole repository exhaustively.
 
 #### 4a. Lightweight project fingerprint (only if not implied by the Canvas)
 
-If the Canvas already states concrete file paths and the project's stack is unambiguous from those paths, keep this step brief. Otherwise, identify the stack and tooling by reading primary project files when present, such as `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle`, `mix.exs`, or `deno.json`. List top-level directories and read one obvious relevant config file when useful.
+If the Canvas already states concrete file paths and the project's stack is unambiguous from those paths, keep this step brief. Otherwise, detect the stack and tooling from primary dependency/build files, lock files, and obvious tool manifests. List top-level directories and read one obvious relevant configuration file only when useful.
 
 Keep this step fast. Touch only a small number of files. Skip entirely when the Canvas plus the update instructions provide enough context.
 
@@ -213,7 +213,7 @@ Before editing, determine the minimal set of prompt changes required.
 
 Number each proposed change as `U-n` (for example, `U-1`, `U-2`, ...) and map it to the affected REASONS section(s), AC/DE IDs, and source of intent.
 
-Always present a short Update Plan preamble before editing. Use the structure below. Stop for explicit approval **only** when a destructive removal, Requirements scope reduction, Safeguard relaxation, backward-incompatible contract change, contradiction with unchanged requirements, or whole-file rewrite is involved. Otherwise, proceed to Step 6 immediately after the preamble.
+Always present a short Update Plan preamble before editing. This preamble is an execution notice, not an approval gate, for ordinary additive or refining updates. Stop for explicit approval **only** when a destructive removal, Requirements scope reduction, Safeguard relaxation, backward-incompatible contract change, contradiction with unchanged requirements, or whole-file rewrite is involved. Otherwise, proceed to Step 6 immediately after the preamble without waiting for a second confirmation.
 
 ```markdown
 ## Prompt Update Plan
@@ -463,9 +463,12 @@ Reply with:
 
 If no prompt updates were applied because clarification or approval is pending, report the proposed plan and clearly state that no files were modified.
 
-After reporting, ask as a plain follow-up line:
+After reporting, include this user-driven handoff when code changes are needed:
 
-The SPDD prompt has been updated. Would you like to regenerate the affected code using `/spdd-generate`?
+```markdown
+🔗 Next step: Regenerate affected code explicitly:
+   /spdd-generate <prompt-file>
+```
 
 Do not invoke `/spdd-generate` automatically. Pi does not auto-chain prompt templates.
 
@@ -574,4 +577,4 @@ Use `/spdd-prompt-update` when:
 
 Do not use `/spdd-prompt-update` as a substitute for `/spdd-sync` when the code already changed and the prompt needs to reflect accepted implementation details. Do not use it as a substitute for `/spdd-generate` when the prompt is already correct and source code needs to change.
 
-Note: `/spdd-prompt-update` is prompt-update-only. If accepted code drift needs to be synchronized, hand off to `/spdd-sync`. If implementation changes are needed after the Canvas update, hand off to `/spdd-generate`. Do not inline those workflows inside `/spdd-prompt-update`. Pi does not auto-chain prompt templates.
+Note: `/spdd-prompt-update` is prompt-update-only. If accepted code drift needs to be synchronized, hand off to `/spdd-sync <prompt-file> <changed files or description>`. If implementation changes are needed after the Canvas update, hand off to `/spdd-generate <prompt-file>`. Do not inline those workflows inside `/spdd-prompt-update`. Pi does not auto-chain prompt templates.
